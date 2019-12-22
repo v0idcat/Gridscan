@@ -243,14 +243,16 @@ def fullscan():
         break
 
     while not os.path.isfile("nmap/quickscan.nmap"):
-        quickscan()
+        quickscancmd = "nmap -Pn -p- -T4 --max-retries 1 --max-scan-delay 20 --open -oA nmap/quickscan %s" % target
+        print(f"{bcolors.WARNING}\n[*] No old quick scan results found, running now to parse...{bcolors.ENDC}")
+        os.system(quickscancmd)
         os.system(parsequickfile)
+        print(f"{bcolors.GREEN}\n[+] Scan completed & parsed, starting full scan now...{bcolors.ENDC}")
         f = open("nmap/parsedquickscan.txt", "r")
         if f.mode == "r":
             quickscanopenports = f.read()
         f.close()
         cmd = "nmap -A -Pn -p %s -sV --max-retries 3 --max-rate 500 --max-scan-delay 20 -T3 -v -oA nmap/fullscan %s" % (quickscanopenports, target) # john cena asks ARE YOU SURE ABOUT THAT?
-        print(cmd)
         break
 
 
