@@ -5,13 +5,6 @@
 # Maybe perimeterscan.py or periscan.py rather than gridscan.py?
 # 
 # MADE BY Insomniac\x00
-# NOTE: Add capability to check and warn user if there's insufficient creds to create dir!
-# NOTE: Add capability to upload LinEnum.sh and run it on remote server thru SSH, then 
-# send output back and save on local file. Maybe something like this also for windows machines?
-# NOTE: Add gobuster search if port 80/8080/443 are found & maybe nikto and/or sparta scans aswell?
-# Gobuster should use dirs based on user input, with small being common.txt, med being small-directories.txt
-# and large being medium-directories.txt. 
-# Also allow user to select wordlist manually; prompt user if required wordlists arent found.
 
 import sys, os
 from inputimeout import inputimeout, TimeoutOccurred
@@ -19,14 +12,15 @@ from inputimeout import inputimeout, TimeoutOccurred
 
 # Define colors for better readability when printing output
 class bcolors: 
-    PURPLE = '\033[95m'
-    BLUE = '\033[94m'
-    GREEN = '\033[92m'
-    WARNING = '\033[93m'
-    FAIL = '\033[91m'
-    ENDC = '\033[0m'
-    BOLD = '\033[1m'
-    UNDERLINE = '\033[4m'
+    PURPLE = '\033[95m'     # Purple color
+    BLUE = '\033[94m'       # Blue
+    GREEN = '\033[92m'      # Green
+    WARNING = '\033[93m'    # Yellow
+    FAIL = '\033[91m'       # Red 
+    ENDC = '\033[0m'        # Return to default text format
+    BOLD = '\033[1m'        # Bold Text
+    UNDERLINE = '\033[4m'   # Underlines text
+    TIMEOUT = '\033[43m'    # Yellow background
 
 
 
@@ -98,7 +92,7 @@ def filecheck():
 # Defining scan types
 
 def quickscan(): # Quickly scan all ports and see which are open
-    cmd = "nmap -Pn -T4 --max-retries 1 --max-scan-delay 20 --open -oA nmap/quickscan %s" % target
+    cmd = "nmap -Pn -p- -T4 --max-retries 1 --max-scan-delay 20 --open -oA nmap/quickscan %s" % target
 
 
     while quickscan_results_available: # While loop to return to if loop incase user input is incorrect.
@@ -125,7 +119,7 @@ def quickscan(): # Quickly scan all ports and see which are open
 
 
         except TimeoutOccurred: # If timed out, do the following...
-            print(f"{bcolors.WARNING}[*] TIMED OUT: Printing old results, then rerunning scans just in case...{bcolors.ENDC}")
+            print(f"{bcolors.TIMEOUT}[*] TIMED OUT: Printing old results, then rerunning scans just in case...{bcolors.ENDC}")
             catfile = 'cat nmap/quickscan.nmap'
             print(f'{bcolors.BOLD}----------------------------{bcolors.WARNING}OLD RESULTS{bcolors.ENDC}{bcolors.BOLD}----------------------------{bcolors.ENDC}')
             os.system(catfile)
@@ -168,7 +162,7 @@ def udpscan(): # Scan UDP ports
 
 
         except TimeoutOccurred:
-            print(f"{bcolors.WARNING}[*] TIMED OUT: Printing old results, then rerunning scans just in case...{bcolors.ENDC}")
+            print(f"{bcolors.TIMEOUT}[*] TIMED OUT: Printing old results, then rerunning scans just in case...{bcolors.ENDC}")
             catfile = 'cat nmap/udpscan.nmap'
             print(f'{bcolors.BOLD}----------------------------{bcolors.WARNING}OLD RESULTS{bcolors.ENDC}{bcolors.BOLD}----------------------------{bcolors.ENDC}')
             os.system(catfile)
@@ -213,7 +207,7 @@ def regscan(): # Scan with all regular scripts and fingerprint for service versi
 
 
         except TimeoutOccurred:
-            print(f"{bcolors.WARNING}[*] TIMED OUT: Printing old results, then rerunning scans just in case...{bcolors.ENDC}")
+            print(f"{bcolors.TIMEOUT}[*] TIMED OUT: Printing old results, then rerunning scans just in case...{bcolors.ENDC}")
             catfile = 'cat nmap/regularscan.nmap'
             print(f'{bcolors.BOLD}----------------------------{bcolors.WARNING}OLD RESULTS{bcolors.ENDC}{bcolors.BOLD}----------------------------{bcolors.ENDC}')
             os.system(catfile)
@@ -234,7 +228,31 @@ def regscan(): # Scan with all regular scripts and fingerprint for service versi
 # NOTE: Instead of running full scan on all ports, run quick scan first, then thorough scan on open ports.
 
 def fullscan():
-    cmd = "nmap -A -Pn -p- -sV --max-retries 1 --max-rate 500 --max-scan-delay 20 -T3 -v -oA nmap/fullscan %s" % target # john cena asks ARE YOU SURE ABOUT THAT?
+    
+    texttoprint = f"\n{bcolors.BOLD}[*] Running scan type: Full{bcolors.ENDC}"
+    catfullfile = "cat nmap/fullscan.nmap"
+    parsequickfile = "cat nmap/quickscan.nmap | grep open | cut -d \" \" -f 1 | cut -d \"/\" -f 1 | tr \"\\n\" \",\" | cut -c3- | head -c-2 > nmap/parsedquickscan.txt" # Command to parse quickscan file.
+    
+    while os.path.isfile("nmap/quickscan.nmap"):
+        os.system(parsequickfile)
+        f = open("nmap/parsedquickscan.txt", "r")
+        if f.mode == "r":
+            quickscanopenports = f.read()
+        f.close()
+        cmd = "nmap -A -Pn -p %s -sV --max-retries 3 --max-rate 500 --max-scan-delay 20 -T3 -v -oA nmap/fullscan %s" % (quickscanopenports, target) # john cena asks ARE YOU SURE ABOUT THAT?
+        break
+
+    while not os.path.isfile("nmap/quickscan.nmap"):
+        quickscan()
+        os.system(parsequickfile)
+        f = open("nmap/parsedquickscan.txt", "r")
+        if f.mode == "r":
+            quickscanopenports = f.read()
+        f.close()
+        cmd = "nmap -A -Pn -p %s -sV --max-retries 3 --max-rate 500 --max-scan-delay 20 -T3 -v -oA nmap/fullscan %s" % (quickscanopenports, target) # john cena asks ARE YOU SURE ABOUT THAT?
+        print(cmd)
+        break
+
 
     while fullscan_results_available:
         try:
@@ -243,14 +261,17 @@ def fullscan():
             rerun_scan = rerun_scan.lower()
 
             if rerun_scan == "y":
-                print(f"\n{bcolors.BOLD}[*] Running scan type: Full{bcolors.ENDC}")
+
+                
+
+                # Add code here
+                print(texttoprint)
                 os.system(cmd)
                 break
 
             elif rerun_scan == "n":
                 print(f"{bcolors.WARNING}[*] Scan rerun denied by user. Printing old results instead.{bcolors.ENDC}")
-                catfile = "cat nmap/fullscan.nmap"
-                os.system(catfile)
+                os.system(catfullfile)
                 break
 
             else:
@@ -258,18 +279,22 @@ def fullscan():
 
 
         except TimeoutOccurred:
-            print(f"{bcolors.WARNING}[*] TIMED OUT: Printing old results, then rerunning scans just in case...{bcolors.ENDC}")
-            catfile = 'cat nmap/fullscan.nmap'
+            print(f"{bcolors.TIMEOUT}[*] TIMED OUT: Printing old results, then rerunning scans just in case...{bcolors.ENDC}")
             print(f'{bcolors.BOLD}----------------------------{bcolors.WARNING}OLD RESULTS{bcolors.ENDC}{bcolors.BOLD}----------------------------{bcolors.ENDC}')
-            os.system(catfile)
+            os.system(catfullfile)
             print(f'{bcolors.BOLD}---------------------------{bcolors.WARNING}END OF RESULTS{bcolors.ENDC}{bcolors.BOLD}--------------------------{bcolors.ENDC}')
-            print(f"\n{bcolors.BOLD}[*] Running scan type: Full{bcolors.ENDC}")
+
+            # Add code here
+            print(texttoprint)
             os.system(cmd)
             break
 
     while not fullscan_results_available:
-        print(f"\n{bcolors.BOLD}[*] Running scan type: Full{bcolors.ENDC}")
+
+        # Add code here
+        print(texttoprint)
         os.system(cmd)
+        break
 
 
 filecheck()
