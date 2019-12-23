@@ -34,7 +34,7 @@ if __name__ == '__main__':
         print(f"{bcolors.WARNING}NOTE: Requires nmap to work!{bcolors.ENDC}\n")
         print(f"{bcolors.PURPLE}---------------------------------------------------------" + bcolors.ENDC)
         print(f"{bcolors.PURPLE}-----------------------made by---------------------------" + bcolors.ENDC)
-        print(f"{bcolors.PURPLE}--------------------{bcolors.BLUE}v0id.cat{bcolors.ENDC}{bcolors.PURPLE}------------------------" + bcolors.ENDC)
+        print(f"{bcolors.PURPLE}-----------------------{bcolors.BLUE}v0id.cat{bcolors.ENDC}{bcolors.PURPLE}--------------------------" + bcolors.ENDC)
         print(f"{bcolors.PURPLE}---------------------------------------------------------\n" + bcolors.ENDC)
 
     except IndexError:
@@ -98,7 +98,6 @@ def quickscan(): # Quickly scan all ports and see which are open
     while quickscan_results_available: # While loop to return to if loop incase user input is incorrect.
         try:
             print(f"{bcolors.WARNING}[*] Previous scan files have been found in nmap dir!{bcolors.ENDC}\n")
-            # rerun_scan = input(f"{bcolors.BOLD}[*] Would you like to rerun the scan? y/N {bcolors.ENDC}")
             rerun_scan = inputimeout(prompt=f"{bcolors.BOLD}[*] Would you like to rerun the scan? y/N {bcolors.ENDC}", timeout = 30) # Setting input timeout
             
             rerun_scan = rerun_scan.lower()
@@ -138,7 +137,7 @@ def quickscan(): # Quickly scan all ports and see which are open
 
 
 def udpscan(): # Scan UDP ports
-    cmd = "nmap -Pn -sU --max-retries 1 --open -oA nmap/udpscan %s" % target
+    cmd = "nmap -Pn -sU -sC -sV --script vulners --script-args mincvss=7.0 --max-retries 1 --open -oA nmap/udpscan %s" % target
 
     while udpscan_results_available:
         try:
@@ -224,25 +223,22 @@ def regscan(): # Scan with all regular scripts and fingerprint for service versi
 
 
 
-# NOTE: Add CVE / vulnerability scanning thru nmap NSE 
-# NOTE: Instead of running full scan on all ports, run quick scan first, then thorough scan on open ports.
 
-def fullscan():
+def fullscan(): # Scan all TCP ports, if any are found, run a thorough scan with vulners script as well as default scripts & gobuster.
     
     texttoprint = f"\n{bcolors.BOLD}[*] Running scan type: Full{bcolors.ENDC}"
     catfullfile = "cat nmap/fullscan.nmap"
     parsequickfile = "cat nmap/quickscan.nmap | grep open | cut -d \" \" -f 1 | cut -d \"/\" -f 1 | tr \"\\n\" \",\" | cut -c3- | head -c-2 > nmap/parsedquickscan.txt" # Command to parse quickscan file.
-    
-    while os.path.isfile("nmap/quickscan.nmap"):
+    if os.path.isfile("nmap/quickscan.nmap"):
+        print(f"{bcolors.WARNING}[*] Old quickscan results have been found! Parsing data for full scan...")
         os.system(parsequickfile)
         f = open("nmap/parsedquickscan.txt", "r")
         if f.mode == "r":
             quickscanopenports = f.read()
         f.close()
-        cmd = "nmap -A -Pn -p %s -sV --max-retries 3 --max-rate 500 --max-scan-delay 20 -T3 -v -oA nmap/fullscan %s" % (quickscanopenports, target) # john cena asks ARE YOU SURE ABOUT THAT?
-        break
+        cmd = "nmap -A -Pn -p %s -sV --script vulners --script-args mincvss=7.0 --max-retries 3 --max-rate 500 --max-scan-delay 20 -T3 -v -oA nmap/fullscan %s" % (quickscanopenports, target) # john cena asks ARE YOU SURE ABOUT THAT?
 
-    while not os.path.isfile("nmap/quickscan.nmap"):
+    elif not os.path.isfile("nmap/quickscan.nmap"):
         quickscancmd = "nmap -Pn -p- -T4 --max-retries 1 --max-scan-delay 20 --open -oA nmap/quickscan %s" % target
         print(f"{bcolors.WARNING}\n[*] No old quick scan results found, running now to parse...{bcolors.ENDC}")
         os.system(quickscancmd)
@@ -252,21 +248,16 @@ def fullscan():
         if f.mode == "r":
             quickscanopenports = f.read()
         f.close()
-        cmd = "nmap -A -Pn -p %s -sV --max-retries 3 --max-rate 500 --max-scan-delay 20 -T3 -v -oA nmap/fullscan %s" % (quickscanopenports, target) # john cena asks ARE YOU SURE ABOUT THAT?
-        break
-
-
+        cmd = "nmap -A -Pn -p %s -sV --script vulners --script-args mincvss=7.0 --max-retries 3 --max-rate 500 --max-scan-delay 20 -T3 -v -oA nmap/fullscan %s" % (quickscanopenports, target) # john cena asks ARE YOU SURE ABOUT THAT?
+    else:
+        print(f"{bcolors.FAIL}Error occured while checking if quickscan results were available.")
+        pass
     while fullscan_results_available:
         try:
             print(f"{bcolors.WARNING}[*] Previous scan files have been found in nmap dir!{bcolors.ENDC}\n")
             rerun_scan = inputimeout(prompt=f"{bcolors.BOLD}[*] Would you like to rerun the scan? y/N {bcolors.ENDC}", timeout = 30)
             rerun_scan = rerun_scan.lower()
-
             if rerun_scan == "y":
-
-                
-
-                # Add code here
                 print(texttoprint)
                 os.system(cmd)
                 break
@@ -285,15 +276,11 @@ def fullscan():
             print(f'{bcolors.BOLD}----------------------------{bcolors.WARNING}OLD RESULTS{bcolors.ENDC}{bcolors.BOLD}----------------------------{bcolors.ENDC}')
             os.system(catfullfile)
             print(f'{bcolors.BOLD}---------------------------{bcolors.WARNING}END OF RESULTS{bcolors.ENDC}{bcolors.BOLD}--------------------------{bcolors.ENDC}')
-
-            # Add code here
             print(texttoprint)
             os.system(cmd)
             break
 
     while not fullscan_results_available:
-
-        # Add code here
         print(texttoprint)
         os.system(cmd)
         break
