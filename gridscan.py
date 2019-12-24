@@ -4,7 +4,7 @@
 # 
 # Maybe perimeterscan.py or periscan.py rather than gridscan.py?
 # 
-# MADE BY Insomniac\x00
+# MADE BY v0idcat
 
 import sys, os
 from inputimeout import inputimeout, TimeoutOccurred
@@ -54,9 +54,8 @@ udpscan_results_available = False
 regularscan_results_available = False
 fullscan_results_available = False
 
-# Check if nmap dir exists, otherwise create it.
 
-def filecheck():
+def filecheck(): # Check if nmap dir exists, otherwise create it.
     global quickscan_results_available, udpscan_results_available, regularscan_results_available, fullscan_results_available # Import global vars
     if os.path.isdir('./nmap'): 
         if os.path.isfile('./nmap/quickscan.nmap'):
@@ -285,53 +284,89 @@ def fullscan(): # Scan all TCP ports, if any are found, run a thorough scan with
         os.system(cmd)
         break
 
+
+
     while not os.path.isfile("gobuster80results"): # Start while loop for port 80
-        if "80" in quickscanopenports:
-            rungobuster = inputimeout(prompt=f"{bcolors.BLUE}[+] Port 80 found on target! Would you like to run gobuster? y/N {bcolors.ENDC}", timeout = 30)
-            rungobuster = rungobuster.lower()
-            if rungobuster == "y":
+        try:
+            if "80" in quickscanopenports:
+                gobustertextprint = f"\n{bcolors.BOLD}[*] Running gobuster...{bcolors.ENDC}"
                 cmdrungobuster = "gobuster dir -w /usr/share/wordlists/dirb/common.txt -u http://%s:80 -o gobuster80results" % target
-                os.system(cmdrungobuster)
-                break
-            elif rungobuster == "n":
-                print(f"{bcolors.WARNING}[-] Skipping gobuster...")
-                break
+                rungobuster = inputimeout(prompt=f"{bcolors.BLUE}[+] Port 80 found on target! Would you like to run gobuster? y/N {bcolors.ENDC}", timeout = 30)
+                rungobuster = rungobuster.lower()
+                if rungobuster == "y":
+                    os.system(cmdrungobuster)
+                    break
+                elif rungobuster == "n":
+                    print(f"{bcolors.WARNING}[-] Skipping port 80...")
+                    break
+                else:
+                    print(f"{bcolors.FAIL}[-] ERROR Handling input. Please type y or N.")
             else:
-                print(f"{bcolors.FAIL}[-] ERROR Handling input. Please type y or N.")
-        else:
+                break
+        except TimeoutOccurred:
+            catgobusterresults = "cat gobuster80results"
+            print(f"{bcolors.TIMEOUT}[*] TIMED OUT: Printing old results, then rerunning scans just in case...{bcolors.ENDC}")
+            print(f'{bcolors.BOLD}----------------------------{bcolors.WARNING}OLD RESULTS{bcolors.ENDC}{bcolors.BOLD}----------------------------{bcolors.ENDC}')
+            os.system(catgobusterresults)
+            print(f'{bcolors.BOLD}---------------------------{bcolors.WARNING}END OF RESULTS{bcolors.ENDC}{bcolors.BOLD}--------------------------{bcolors.ENDC}')
+            print(gobustertextprint)
+            os.system(cmdrungobuster)
             break
+
 
     while not os.path.isfile("gobuster8080results"): # Start while loop for port 8080
-        if "8080" in quickscanopenports:
-            rungobuster = inputimeout(prompt=f"{bcolors.BLUE}[+] Port 8080 found on target! Would you like to run gobuster? y/N {bcolors.ENDC}", timeout = 30)
-            rungobuster = rungobuster.lower()
-            if rungobuster == "y":
+        try:
+            if "8080" in quickscanopenports:
                 cmdrungobuster = "gobuster dir -w /usr/share/wordlists/dirb/common.txt -u http://%s:8080 -o gobuster8080results" % target
-                os.system(cmdrungobuster)
-                break
-            elif rungobuster == "n":
-                print(f"{bcolors.WARNING}[-] Skipping gobuster...")
-                break
+                rungobuster = inputimeout(prompt=f"{bcolors.BLUE}[+] Port 8080 found on target! Would you like to run gobuster? y/N {bcolors.ENDC}", timeout = 30)
+                rungobuster = rungobuster.lower()
+                if rungobuster == "y":
+                    os.system(cmdrungobuster)
+                    break
+                elif rungobuster == "n":
+                    print(f"{bcolors.WARNING}[-] Skipping port 8080...")
+                    break
+                else:
+                    print(f"{bcolors.FAIL}[-] ERROR Handling input. Please type y or N.")
             else:
-                print(f"{bcolors.FAIL}[-] ERROR Handling input. Please type y or N.")
-        else:
+                break
+        except TimeoutOccurred:
+            catgobusterresults = "cat gobuster8080results"
+            print(f"{bcolors.TIMEOUT}[*] TIMED OUT: Printing old results, then rerunning scans just in case...{bcolors.ENDC}")
+            print(f'{bcolors.BOLD}----------------------------{bcolors.WARNING}OLD RESULTS{bcolors.ENDC}{bcolors.BOLD}----------------------------{bcolors.ENDC}')
+            os.system(catgobusterresults)
+            print(f'{bcolors.BOLD}---------------------------{bcolors.WARNING}END OF RESULTS{bcolors.ENDC}{bcolors.BOLD}--------------------------{bcolors.ENDC}')
+            print(gobustertextprint)
+            os.system(cmdrungobuster)
             break
 
+
     while not os.path.isfile("gobuster443results"): # Start while loop for port 443
-        if "443" in quickscanopenports:
-            rungobuster = inputimeout(prompt=f"{bcolors.BLUE}[+] Port 443 found on target! Would you like to run gobuster? y/N {bcolors.ENDC}", timeout = 30)
-            rungobuster = rungobuster.lower()
-            if rungobuster == "y":
+        try:
+            if "443" in quickscanopenports:
                 cmdrungobuster = "gobuster dir -w /usr/share/wordlists/dirb/common.txt -u https://%s:443 -o gobuster443results" % target
-                os.system(cmdrungobuster)
-                break
-            elif rungobuster == "n":
-                print(f"{bcolors.WARNING}[-] Skipping gobuster...")
-                break
+                rungobuster = inputimeout(prompt=f"{bcolors.BLUE}[+] Port 443 found on target! Would you like to run gobuster? y/N {bcolors.ENDC}", timeout = 30)
+                rungobuster = rungobuster.lower()
+                if rungobuster == "y":
+                    os.system(cmdrungobuster)
+                    break
+                elif rungobuster == "n":
+                    print(f"{bcolors.WARNING}[-] Skipping port 443...")
+                    break
+                else:
+                    print(f"{bcolors.FAIL}[-] ERROR Handling input. Please type y or N.")
             else:
-                print(f"{bcolors.FAIL}[-] ERROR Handling input. Please type y or N.")
-        else:
+                break
+        except TimeoutOccurred:
+            catgobusterresults = "cat gobuster443results"
+            print(f"{bcolors.TIMEOUT}[*] TIMED OUT: Printing old results, then rerunning scans just in case...{bcolors.ENDC}")
+            print(f'{bcolors.BOLD}----------------------------{bcolors.WARNING}OLD RESULTS{bcolors.ENDC}{bcolors.BOLD}----------------------------{bcolors.ENDC}')
+            os.system(catgobusterresults)
+            print(f'{bcolors.BOLD}---------------------------{bcolors.WARNING}END OF RESULTS{bcolors.ENDC}{bcolors.BOLD}--------------------------{bcolors.ENDC}')
+            print(gobustertextprint)
+            os.system(cmdrungobuster)
             break
+
 
 filecheck()
 
