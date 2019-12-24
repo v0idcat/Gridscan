@@ -1,9 +1,7 @@
 #!/usr/bin/python3
-#
 # Written in Python 3.6.9
 # 
-# Maybe perimeterscan.py or periscan.py rather than gridscan.py?
-# 
+# GRIDSCAN v 0.1
 # MADE BY v0idcat
 
 import sys, os
@@ -235,7 +233,7 @@ def fullscan(): # Scan all TCP ports, if any are found, run a thorough scan with
         if f.mode == "r":
             quickscanopenports = f.read()
         f.close()
-        cmd = "nmap -A -Pn -p %s -sV --script vulners --script-args mincvss=7.0 --max-retries 3 --max-rate 500 --max-scan-delay 20 -T3 -v -oA nmap/fullscan %s" % (quickscanopenports, target) # john cena asks ARE YOU SURE ABOUT THAT?
+        cmd = "nmap -A -Pn -p %s -sV --script vulners --script-args mincvss=7.0 --max-retries 3 --max-rate 500 --max-scan-delay 15 -T3 -v -oA nmap/fullscan %s" % (quickscanopenports, target) # john cena asks ARE YOU SURE ABOUT THAT?
 
     elif not os.path.isfile("nmap/quickscan.nmap"):
         quickscancmd = "nmap -Pn -p- -T4 --max-retries 1 --max-scan-delay 20 --open -oA nmap/quickscan %s" % target
