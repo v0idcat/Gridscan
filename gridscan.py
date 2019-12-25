@@ -29,7 +29,7 @@ if __name__ == '__main__':
         target = sys.argv[1]
         scan_type = sys.argv[2]
         scan_type = scan_type.lower()
-        print(f"{bcolors.WARNING}NOTE: Requires nmap to work!{bcolors.ENDC}\n")
+        print(f"{bcolors.WARNING}NOTE: Requires nmap with vulners script & gobuster{bcolors.ENDC}\n")
         print(f"{bcolors.PURPLE}---------------------------------------------------------" + bcolors.ENDC)
         print(f"{bcolors.PURPLE}-----------------------made by---------------------------" + bcolors.ENDC)
         print(f"{bcolors.PURPLE}-----------------------{bcolors.BLUE}v0id.cat{bcolors.ENDC}{bcolors.PURPLE}--------------------------" + bcolors.ENDC)
@@ -43,6 +43,7 @@ if __name__ == '__main__':
         print("UDP OR U                 - Runs a UDP scan on the target.")
         print("Regular OR Reg OR R      - Runs regular scripts and fingerprints for service versions.")
         print("Full OR F                - Does a more thorough & aggressive TCP scan on target.")
+        print("Gobuster OR G            - Runs gobuster on ports 80/8080/443 depending on what is found with a quickscan.")
         sys.exit(-1)
 
 
@@ -220,11 +221,7 @@ def regscan(): # Scan with all regular scripts and fingerprint for service versi
 
 
 
-
-def fullscan(): # Scan all TCP ports, if any are found, run a thorough scan with vulners script as well as default scripts & gobuster.
-    
-    texttoprint = f"\n{bcolors.BOLD}[*] Running scan type: Full{bcolors.ENDC}"
-    catfullfile = "cat nmap/fullscan.nmap"
+def gobusterscan():
     parsequickfile = "cat nmap/quickscan.nmap | grep open | cut -d \" \" -f 1 | cut -d \"/\" -f 1 | tr \"\\n\" \",\" | cut -c3- | head -c-2 > nmap/parsedquickscan.txt" # Command to parse quickscan file.
     if os.path.isfile("nmap/quickscan.nmap"):
         print(f"{bcolors.WARNING}[*] Old quickscan results have been found! Parsing data for full scan...")
@@ -233,56 +230,16 @@ def fullscan(): # Scan all TCP ports, if any are found, run a thorough scan with
         if f.mode == "r":
             quickscanopenports = f.read()
         f.close()
-        cmd = "nmap -A -Pn -p %s -sV --script vulners --script-args mincvss=7.0 --max-retries 3 --max-rate 500 --max-scan-delay 15 -T3 -v -oA nmap/fullscan %s" % (quickscanopenports, target) # john cena asks ARE YOU SURE ABOUT THAT?
-
     elif not os.path.isfile("nmap/quickscan.nmap"):
         quickscancmd = "nmap -Pn -p- -T4 --max-retries 1 --max-scan-delay 20 --open -oA nmap/quickscan %s" % target
         print(f"{bcolors.WARNING}\n[*] No old quick scan results found, running now to parse...{bcolors.ENDC}")
         os.system(quickscancmd)
         os.system(parsequickfile)
-        print(f"{bcolors.GREEN}\n[+] Scan completed & parsed, starting full scan now...{bcolors.ENDC}")
         f = open("nmap/parsedquickscan.txt", "r")
         if f.mode == "r":
             quickscanopenports = f.read()
         f.close()
-        cmd = "nmap -A -Pn -p %s -sV --script vulners --script-args mincvss=7.0 --max-retries 3 --max-rate 500 --max-scan-delay 20 -T3 -v -oA nmap/fullscan %s" % (quickscanopenports, target) # john cena asks ARE YOU SURE ABOUT THAT?
-    else:
-        print(f"{bcolors.FAIL}Error occured while checking if quickscan results were available.")
-        pass
-    while fullscan_results_available:
-        try:
-            print(f"{bcolors.WARNING}[*] Previous scan files have been found in nmap dir!{bcolors.ENDC}\n")
-            rerun_scan = inputimeout(prompt=f"{bcolors.BOLD}[*] Would you like to rerun the scan? y/N {bcolors.ENDC}", timeout = 30)
-            rerun_scan = rerun_scan.lower()
-            if rerun_scan == "y":
-                print(texttoprint)
-                os.system(cmd)
-                break
-
-            elif rerun_scan == "n":
-                print(f"{bcolors.WARNING}[*] Scan rerun denied by user. Printing old results instead.{bcolors.ENDC}")
-                os.system(catfullfile)
-                break
-
-            else:
-                print(f"{bcolors.FAIL}[-] Error! Please use either Y or N to signify your response!{bcolors.ENDC}")
-
-
-        except TimeoutOccurred:
-            print(f"{bcolors.TIMEOUT}[*] TIMED OUT: Printing old results, then rerunning scans just in case...{bcolors.ENDC}")
-            print(f'{bcolors.BOLD}----------------------------{bcolors.WARNING}OLD RESULTS{bcolors.ENDC}{bcolors.BOLD}----------------------------{bcolors.ENDC}')
-            os.system(catfullfile)
-            print(f'{bcolors.BOLD}---------------------------{bcolors.WARNING}END OF RESULTS{bcolors.ENDC}{bcolors.BOLD}--------------------------{bcolors.ENDC}')
-            print(texttoprint)
-            os.system(cmd)
-            break
-
-    while not fullscan_results_available:
-        print(texttoprint)
-        os.system(cmd)
-        break
-
-
+        print(f"{bcolors.GREEN}\n[+] Scan completed & parsed, starting gobuster scan now...{bcolors.ENDC}")
 
     while not os.path.isfile("gobuster80results"): # Start while loop for port 80
         try:
@@ -366,6 +323,75 @@ def fullscan(): # Scan all TCP ports, if any are found, run a thorough scan with
             break
 
 
+
+
+
+
+def fullscan(): # Scan all TCP ports, if any are found, run a thorough scan with vulners script as well as default scripts & gobuster.
+    
+    texttoprint = f"\n{bcolors.BOLD}[*] Running scan type: Full{bcolors.ENDC}"
+    catfullfile = "cat nmap/fullscan.nmap"
+    parsequickfile = "cat nmap/quickscan.nmap | grep open | cut -d \" \" -f 1 | cut -d \"/\" -f 1 | tr \"\\n\" \",\" | cut -c3- | head -c-2 > nmap/parsedquickscan.txt" # Command to parse quickscan file.
+    if os.path.isfile("nmap/quickscan.nmap"):
+        print(f"{bcolors.WARNING}[*] Old quickscan results have been found! Parsing data for full scan...")
+        os.system(parsequickfile)
+        f = open("nmap/parsedquickscan.txt", "r")
+        if f.mode == "r":
+            quickscanopenports = f.read()
+        f.close()
+        cmd = "nmap -Pn -p %s -sV --script vulners --script-args mincvss=7.0 --max-retries 3 --max-rate 500 --max-scan-delay 20 -T3 -v -oA nmap/fullscan %s" % (quickscanopenports, target) # john cena asks ARE YOU SURE ABOUT THAT?
+
+    elif not os.path.isfile("nmap/quickscan.nmap"):
+        quickscancmd = "nmap -Pn -p- -T4 --max-retries 1 --max-scan-delay 20 --open -oA nmap/quickscan %s" % target
+        print(f"{bcolors.WARNING}\n[*] No old quick scan results found, running now to parse...{bcolors.ENDC}")
+        os.system(quickscancmd)
+        os.system(parsequickfile)
+        print(f"{bcolors.GREEN}\n[+] Scan completed & parsed, starting full scan now...{bcolors.ENDC}")
+        f = open("nmap/parsedquickscan.txt", "r")
+        if f.mode == "r":
+            quickscanopenports = f.read()
+        f.close()
+        cmd = "nmap -Pn -p %s -sV --script vulners --script-args mincvss=7.0 --max-retries 3 --max-rate 500 --max-scan-delay 20 -T3 -v -oA nmap/fullscan %s" % (quickscanopenports, target) # john cena asks ARE YOU SURE ABOUT THAT?
+    else:
+        print(f"{bcolors.FAIL}Error occured while checking if quickscan results were available.")
+        pass
+    while fullscan_results_available:
+        try:
+            print(f"{bcolors.WARNING}[*] Previous scan files have been found in nmap dir!{bcolors.ENDC}\n")
+            rerun_scan = inputimeout(prompt=f"{bcolors.BOLD}[*] Would you like to rerun the scan? y/N {bcolors.ENDC}", timeout = 30)
+            rerun_scan = rerun_scan.lower()
+            if rerun_scan == "y":
+                print(texttoprint)
+                os.system(cmd)
+                break
+
+            elif rerun_scan == "n":
+                print(f"{bcolors.WARNING}[*] Scan rerun denied by user. Printing old results instead.{bcolors.ENDC}")
+                os.system(catfullfile)
+                break
+
+            else:
+                print(f"{bcolors.FAIL}[-] Error! Please use either Y or N to signify your response!{bcolors.ENDC}")
+
+
+        except TimeoutOccurred:
+            print(f"{bcolors.TIMEOUT}[*] TIMED OUT: Printing old results, then rerunning scans just in case...{bcolors.ENDC}")
+            print(f'{bcolors.BOLD}----------------------------{bcolors.WARNING}OLD RESULTS{bcolors.ENDC}{bcolors.BOLD}----------------------------{bcolors.ENDC}')
+            os.system(catfullfile)
+            print(f'{bcolors.BOLD}---------------------------{bcolors.WARNING}END OF RESULTS{bcolors.ENDC}{bcolors.BOLD}--------------------------{bcolors.ENDC}')
+            print(texttoprint)
+            os.system(cmd)
+            break
+
+    while not fullscan_results_available:
+        print(texttoprint)
+        os.system(cmd)
+        break
+
+    gobusterscan()
+
+
+
 filecheck()
 
 # Running requested scan type
@@ -377,3 +403,5 @@ elif scan_type == "full" or scan_type == 'f':
     fullscan()
 elif scan_type == "udp" or scan_type == 'u':
     udpscan()
+elif scan_type == "gobuster" or scan_type == "g":
+    gobusterscan()
