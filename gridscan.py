@@ -4,9 +4,24 @@
 # GRIDSCAN v 0.1
 # MADE BY v0idcat
 
-import sys, os
-from inputimeout import inputimeout, TimeoutOccurred
+import sys, os, select, time
+# from inputimeout import inputimeout, TimeoutOccurred
 
+# Recreating inputimeout function - ONLY USABLE ON LINUX
+# To replace old inputimeout, we need to replace "inputimeout()" function with newly created "tinput()" function
+# We also need to remove "prompt = " from within the function as our function doesn't require it
+# Finally, we need to replace "timeout = NUM" with simply a number for the timeout to expire.
+
+class TimeoutOccurred(Exception):
+    pass
+
+def tinput(prompt, timeout): # This forces the program to only be usable on Linux
+    sys.stdout.write(prompt)
+    sys.stdout.flush()
+    ready, _, _ = select.select([sys.stdin], [],[], timeout) # ready var contains stdin, two underscores are prompt and timeout args handed to func
+    if ready:
+        return sys.stdin.readline().rstrip('\n') # Expect stdin to be line-buffered
+    raise TimeoutOccurred
 
 # Define colors for better readability when printing output
 class bcolors: 
@@ -79,9 +94,10 @@ def filecheck(): # Check if nmap dir exists, otherwise create it.
 
     elif not os.path.isdir('./nmap'):
         print(f"{bcolors.WARNING}[*] nmap directory not found. Creating... {bcolors.ENDC}")
+        #privcheck() # Run if we have the proper privileges to create the directory. Otherwise, what's the point if we can't save info?
         os.system('mkdir nmap')
         print(f"{bcolors.WARNING}[*] Created!{bcolors.ENDC}")
-        #filecheck()
+        
     else:
         print("Unknown error occurred in function \"filecheck()\".")
         pass
@@ -96,7 +112,7 @@ def quickscan(): # Quickly scan all ports and see which are open
     while quickscan_results_available: # While loop to return to if loop incase user input is incorrect.
         try:
             print(f"{bcolors.WARNING}[*] Previous scan files have been found in nmap dir!{bcolors.ENDC}\n")
-            rerun_scan = inputimeout(prompt=f"{bcolors.BOLD}[*] Would you like to rerun the scan? y/N {bcolors.ENDC}", timeout = 30) # Setting input timeout
+            rerun_scan = tinput(f"{bcolors.BOLD}[*] Would you like to rerun the scan? y/N {bcolors.ENDC}", 30) # Setting input timeout
             
             rerun_scan = rerun_scan.lower()
 
@@ -116,7 +132,7 @@ def quickscan(): # Quickly scan all ports and see which are open
 
 
         except TimeoutOccurred: # If timed out, do the following...
-            print(f"{bcolors.TIMEOUT}[*] TIMED OUT: Printing old results, then rerunning scans just in case...{bcolors.ENDC}")
+            print(f"\n{bcolors.TIMEOUT}[*] TIMED OUT: Printing old results, then rerunning scans just in case...{bcolors.ENDC}")
             catfile = 'cat nmap/quickscan.nmap'
             print(f'{bcolors.BOLD}----------------------------{bcolors.WARNING}OLD RESULTS{bcolors.ENDC}{bcolors.BOLD}----------------------------{bcolors.ENDC}')
             os.system(catfile)
@@ -140,7 +156,7 @@ def udpscan(): # Scan UDP ports
     while udpscan_results_available:
         try:
             print(f"{bcolors.WARNING}[*] Previous scan files have been found in nmap dir!{bcolors.ENDC}\n")
-            rerun_scan = inputimeout(prompt=f"{bcolors.BOLD}[*] Would you like to rerun the scan? y/N {bcolors.ENDC}", timeout = 30)
+            rerun_scan = tinput(f"{bcolors.BOLD}[*] Would you like to rerun the scan? y/N {bcolors.ENDC}", 30)
             rerun_scan = rerun_scan.lower()
 
             if rerun_scan == "y":
@@ -159,7 +175,7 @@ def udpscan(): # Scan UDP ports
 
 
         except TimeoutOccurred:
-            print(f"{bcolors.TIMEOUT}[*] TIMED OUT: Printing old results, then rerunning scans just in case...{bcolors.ENDC}")
+            print(f"\n{bcolors.TIMEOUT}[*] TIMED OUT: Printing old results, then rerunning scans just in case...{bcolors.ENDC}")
             catfile = 'cat nmap/udpscan.nmap'
             print(f'{bcolors.BOLD}----------------------------{bcolors.WARNING}OLD RESULTS{bcolors.ENDC}{bcolors.BOLD}----------------------------{bcolors.ENDC}')
             os.system(catfile)
@@ -185,7 +201,7 @@ def regscan(): # Scan with all regular scripts and fingerprint for service versi
     while regularscan_results_available:
         try:
             print(f"{bcolors.WARNING}[*] Previous scan files have been found in nmap dir!{bcolors.ENDC}\n")
-            rerun_scan = inputimeout(prompt=f"{bcolors.BOLD}[*] Would you like to rerun the scan? y/N {bcolors.ENDC}", timeout = 30)
+            rerun_scan = tinput(f"{bcolors.BOLD}[*] Would you like to rerun the scan? y/N {bcolors.ENDC}", 30)
             rerun_scan = rerun_scan.lower()
 
             if rerun_scan == "y":
@@ -204,7 +220,7 @@ def regscan(): # Scan with all regular scripts and fingerprint for service versi
 
 
         except TimeoutOccurred:
-            print(f"{bcolors.TIMEOUT}[*] TIMED OUT: Printing old results, then rerunning scans just in case...{bcolors.ENDC}")
+            print(f"\n{bcolors.TIMEOUT}[*] TIMED OUT: Printing old results, then rerunning scans just in case...{bcolors.ENDC}")
             catfile = 'cat nmap/regularscan.nmap'
             print(f'{bcolors.BOLD}----------------------------{bcolors.WARNING}OLD RESULTS{bcolors.ENDC}{bcolors.BOLD}----------------------------{bcolors.ENDC}')
             os.system(catfile)
@@ -246,7 +262,7 @@ def gobusterscan():
             if "80" in quickscanopenports:
                 gobustertextprint = f"\n{bcolors.BOLD}[*] Running gobuster...{bcolors.ENDC}"
                 cmdrungobuster = "gobuster dir -w /usr/share/wordlists/dirb/common.txt -u http://%s:80 -o gobuster80results" % target
-                rungobuster = inputimeout(prompt=f"{bcolors.BLUE}[+] Port 80 found on target! Would you like to run gobuster? y/N {bcolors.ENDC}", timeout = 30)
+                rungobuster = tinput(f"{bcolors.BLUE}[+] Port 80 found on target! Would you like to run gobuster? y/N {bcolors.ENDC}", 30)
                 rungobuster = rungobuster.lower()
                 if rungobuster == "y":
                     os.system(cmdrungobuster)
@@ -260,7 +276,7 @@ def gobusterscan():
                 break
         except TimeoutOccurred:
             catgobusterresults = "cat gobuster80results"
-            print(f"{bcolors.TIMEOUT}[*] TIMED OUT: Printing old results, then rerunning scans just in case...{bcolors.ENDC}")
+            print(f"\n{bcolors.TIMEOUT}[*] TIMED OUT: Printing old results, then rerunning scans just in case...{bcolors.ENDC}")
             print(f'{bcolors.BOLD}----------------------------{bcolors.WARNING}OLD RESULTS{bcolors.ENDC}{bcolors.BOLD}----------------------------{bcolors.ENDC}')
             os.system(catgobusterresults)
             print(f'{bcolors.BOLD}---------------------------{bcolors.WARNING}END OF RESULTS{bcolors.ENDC}{bcolors.BOLD}--------------------------{bcolors.ENDC}')
@@ -273,7 +289,7 @@ def gobusterscan():
         try:
             if "8080" in quickscanopenports:
                 cmdrungobuster = "gobuster dir -w /usr/share/wordlists/dirb/common.txt -u http://%s:8080 -o gobuster8080results" % target
-                rungobuster = inputimeout(prompt=f"{bcolors.BLUE}[+] Port 8080 found on target! Would you like to run gobuster? y/N {bcolors.ENDC}", timeout = 30)
+                rungobuster = tinput(f"{bcolors.BLUE}[+] Port 8080 found on target! Would you like to run gobuster? y/N {bcolors.ENDC}", 30)
                 rungobuster = rungobuster.lower()
                 if rungobuster == "y":
                     os.system(cmdrungobuster)
@@ -287,7 +303,7 @@ def gobusterscan():
                 break
         except TimeoutOccurred:
             catgobusterresults = "cat gobuster8080results"
-            print(f"{bcolors.TIMEOUT}[*] TIMED OUT: Printing old results, then rerunning scans just in case...{bcolors.ENDC}")
+            print(f"\n{bcolors.TIMEOUT}[*] TIMED OUT: Printing old results, then rerunning scans just in case...{bcolors.ENDC}")
             print(f'{bcolors.BOLD}----------------------------{bcolors.WARNING}OLD RESULTS{bcolors.ENDC}{bcolors.BOLD}----------------------------{bcolors.ENDC}')
             os.system(catgobusterresults)
             print(f'{bcolors.BOLD}---------------------------{bcolors.WARNING}END OF RESULTS{bcolors.ENDC}{bcolors.BOLD}--------------------------{bcolors.ENDC}')
@@ -300,7 +316,7 @@ def gobusterscan():
         try:
             if "443" in quickscanopenports:
                 cmdrungobuster = "gobuster dir -w /usr/share/wordlists/dirb/common.txt -u https://%s:443 -o gobuster443results" % target
-                rungobuster = inputimeout(prompt=f"{bcolors.BLUE}[+] Port 443 found on target! Would you like to run gobuster? y/N {bcolors.ENDC}", timeout = 30)
+                rungobuster = tinput(f"{bcolors.BLUE}[+] Port 443 found on target! Would you like to run gobuster? y/N {bcolors.ENDC}", 30)
                 rungobuster = rungobuster.lower()
                 if rungobuster == "y":
                     os.system(cmdrungobuster)
@@ -314,7 +330,7 @@ def gobusterscan():
                 break
         except TimeoutOccurred:
             catgobusterresults = "cat gobuster443results"
-            print(f"{bcolors.TIMEOUT}[*] TIMED OUT: Printing old results, then rerunning scans just in case...{bcolors.ENDC}")
+            print(f"\n{bcolors.TIMEOUT}[*] TIMED OUT: Printing old results, then rerunning scans just in case...{bcolors.ENDC}")
             print(f'{bcolors.BOLD}----------------------------{bcolors.WARNING}OLD RESULTS{bcolors.ENDC}{bcolors.BOLD}----------------------------{bcolors.ENDC}')
             os.system(catgobusterresults)
             print(f'{bcolors.BOLD}---------------------------{bcolors.WARNING}END OF RESULTS{bcolors.ENDC}{bcolors.BOLD}--------------------------{bcolors.ENDC}')
@@ -358,7 +374,7 @@ def fullscan(): # Scan all TCP ports, if any are found, run a thorough scan with
     while fullscan_results_available:
         try:
             print(f"{bcolors.WARNING}[*] Previous scan files have been found in nmap dir!{bcolors.ENDC}\n")
-            rerun_scan = inputimeout(prompt=f"{bcolors.BOLD}[*] Would you like to rerun the scan? y/N {bcolors.ENDC}", timeout = 30)
+            rerun_scan = tinput(f"{bcolors.BOLD}[*] Would you like to rerun the scan? y/N {bcolors.ENDC}", 30)
             rerun_scan = rerun_scan.lower()
             if rerun_scan == "y":
                 print(texttoprint)
@@ -375,7 +391,7 @@ def fullscan(): # Scan all TCP ports, if any are found, run a thorough scan with
 
 
         except TimeoutOccurred:
-            print(f"{bcolors.TIMEOUT}[*] TIMED OUT: Printing old results, then rerunning scans just in case...{bcolors.ENDC}")
+            print(f"\n{bcolors.TIMEOUT}[*] TIMED OUT: Printing old results, then rerunning scans just in case...{bcolors.ENDC}")
             print(f'{bcolors.BOLD}----------------------------{bcolors.WARNING}OLD RESULTS{bcolors.ENDC}{bcolors.BOLD}----------------------------{bcolors.ENDC}')
             os.system(catfullfile)
             print(f'{bcolors.BOLD}---------------------------{bcolors.WARNING}END OF RESULTS{bcolors.ENDC}{bcolors.BOLD}--------------------------{bcolors.ENDC}')
