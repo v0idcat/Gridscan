@@ -5,23 +5,6 @@
 # MADE BY v0idcat
 
 import sys, os, select, time
-# from inputimeout import inputimeout, TimeoutOccurred
-
-# Recreating inputimeout function - ONLY USABLE ON LINUX
-# To replace old inputimeout, we need to replace "inputimeout()" function with newly created "tinput()" function
-# We also need to remove "prompt = " from within the function as our function doesn't require it
-# Finally, we need to replace "timeout = NUM" with simply a number for the timeout to expire.
-
-class TimeoutOccurred(Exception):
-    pass
-
-def tinput(prompt, timeout): # This forces the program to only be usable on Linux
-    sys.stdout.write(prompt)
-    sys.stdout.flush()
-    ready, _, _ = select.select([sys.stdin], [],[], timeout) # ready var contains stdin, two underscores are prompt and timeout args handed to func
-    if ready:
-        return sys.stdin.readline().rstrip('\n') # Expect stdin to be line-buffered
-    raise TimeoutOccurred
 
 # Define colors for better readability when printing output
 class bcolors: 
@@ -62,12 +45,27 @@ if __name__ == '__main__':
         sys.exit(-1)
 
 
+# Timed input function & class
+class TimeoutOccurred(Exception): # Continue execution after timer has expired
+    pass
 
+def tinput(prompt, timeout):
+    sys.stdout.write(prompt)
+    sys.stdout.flush()
+    ready, _, _ = select.select([sys.stdin], [],[], timeout) # ready var contains stdin, two underscores are wlist and xlist args from select() func
+    if ready:
+        return sys.stdin.readline().rstrip('\n') # Expect stdin to be line-buffered
+    raise TimeoutOccurred
+
+
+# Declaring global variables
 quickscan_results_available = False
 udpscan_results_available = False
 regularscan_results_available = False
 fullscan_results_available = False
-
+quickscancmd = "nmap -Pn -p- -oA nmap/quickscan %s" % target
+udpscancmd = "nmap -Pn -sU -sC -sV --script vuln -oA nmap/udpscan %s" % target
+regscancmd = "nmap -Pn -sC -sV -oA nmap/regularscan %s" % target
 
 def filecheck(): # Check if nmap dir exists, otherwise create it.
     global quickscan_results_available, udpscan_results_available, regularscan_results_available, fullscan_results_available # Import global vars
@@ -94,7 +92,7 @@ def filecheck(): # Check if nmap dir exists, otherwise create it.
 
     elif not os.path.isdir('./nmap'):
         print(f"{bcolors.WARNING}[*] nmap directory not found. Creating... {bcolors.ENDC}")
-        #privcheck() # Run if we have the proper privileges to create the directory. Otherwise, what's the point if we can't save info?
+        #privcheck() # Run to check if we have the proper privileges to create the directory. Otherwise, what's the point if we can't save info?
         os.system('mkdir nmap')
         print(f"{bcolors.WARNING}[*] Created!{bcolors.ENDC}")
         
@@ -106,8 +104,8 @@ def filecheck(): # Check if nmap dir exists, otherwise create it.
 # Defining scan types
 
 def quickscan(): # Quickly scan all ports and see which are open
-    cmd = "nmap -Pn -p- -T4 --max-retries 1 --max-scan-delay 20 --open -oA nmap/quickscan %s" % target
-
+    global quickscancmd
+    # cmd = "nmap -Pn -p- -T4 --max-retries 1 --max-scan-delay 20 --open -oA nmap/quickscan %s" % target
 
     while quickscan_results_available: # While loop to return to if loop incase user input is incorrect.
         try:
@@ -118,7 +116,7 @@ def quickscan(): # Quickly scan all ports and see which are open
 
             if rerun_scan == "y":
                 print(f"\n{bcolors.BOLD}[*] Running scan type: Quick{bcolors.ENDC}")
-                os.system(cmd)
+                os.system(quickscancmd)
                 break
 
             elif rerun_scan == "n":
@@ -138,20 +136,21 @@ def quickscan(): # Quickly scan all ports and see which are open
             os.system(catfile)
             print(f'{bcolors.BOLD}---------------------------{bcolors.WARNING}END OF RESULTS{bcolors.ENDC}{bcolors.BOLD}--------------------------{bcolors.ENDC}')
             print(f"\n{bcolors.BOLD}[*] Running scan type: Quick{bcolors.ENDC}")
-            os.system(cmd)
+            os.system(quickscancmd)
             break
 
 
     while not quickscan_results_available: # If no results are found, run the scan
         print(f"\n{bcolors.BOLD}[*] Running scan type: Quick{bcolors.ENDC}")
-        os.system(cmd)
+        os.system(quickscancmd)
         break
 
 
 
 
 def udpscan(): # Scan UDP ports
-    cmd = "nmap -Pn -sU -sC -sV --script vulners --script-args mincvss=7.0 --max-retries 1 --open -oA nmap/udpscan %s" % target
+    global udpscancmd
+    # cmd = "nmap -Pn -sU -sC -sV --script vulners --script-args mincvss=7.0 --max-retries 1 --open -oA nmap/udpscan %s" % target
 
     while udpscan_results_available:
         try:
@@ -161,7 +160,7 @@ def udpscan(): # Scan UDP ports
 
             if rerun_scan == "y":
                 print(f"\n{bcolors.BOLD}[*] Running scan type: UDP{bcolors.ENDC}")
-                os.system(cmd)
+                os.system(udpscancmd)
                 break
 
             elif rerun_scan == "n":
@@ -181,22 +180,20 @@ def udpscan(): # Scan UDP ports
             os.system(catfile)
             print(f'{bcolors.BOLD}---------------------------{bcolors.WARNING}END OF RESULTS{bcolors.ENDC}{bcolors.BOLD}--------------------------{bcolors.ENDC}')
             print(f"\n{bcolors.BOLD}[*] Running scan type: UDP{bcolors.ENDC}")
-            os.system(cmd)
+            os.system(udpscancmd)
             break
 
 
     while not udpscan_results_available:
         print(f"\n{bcolors.BOLD}[*] Running UDP scan...{bcolors.ENDC}")
-        os.system(cmd)
+        os.system(udpscancmd)
         break
 
 
 
 
 def regscan(): # Scan with all regular scripts and fingerprint for service versions
-
-    cmd = "nmap -Pn -sC -sV -oA nmap/regularscan %s" % target
-
+    global regscancmd
 
     while regularscan_results_available:
         try:
@@ -206,7 +203,7 @@ def regscan(): # Scan with all regular scripts and fingerprint for service versi
 
             if rerun_scan == "y":
                 print(f"\n{bcolors.BOLD}[*] Running scan type: Regular{bcolors.ENDC}")
-                os.system(cmd)
+                os.system(regscancmd)
                 break
 
             elif rerun_scan == "n":
@@ -226,18 +223,19 @@ def regscan(): # Scan with all regular scripts and fingerprint for service versi
             os.system(catfile)
             print(f'{bcolors.BOLD}---------------------------{bcolors.WARNING}END OF RESULTS{bcolors.ENDC}{bcolors.BOLD}--------------------------{bcolors.ENDC}')
             print(f"\n{bcolors.BOLD}[*] Running scan type: Regular{bcolors.ENDC}")
-            os.system(cmd)
+            os.system(regscancmd)
             break
 
 
     while not regularscan_results_available:
         print(f"\n{bcolors.BOLD}[*] Running scan type: Regular{bcolors.ENDC}")
-        os.system(cmd) # Running nmap
+        os.system(regscancmd) # Running nmap
         break
 
 
 
 def gobusterscan():
+    global quickscancmd
     parsequickfile = "cat nmap/quickscan.nmap | grep open | cut -d \" \" -f 1 | cut -d \"/\" -f 1 | tr \"\\n\" \",\" | cut -c3- | head -c-2 > nmap/parsedquickscan.txt" # Command to parse quickscan file.
     if os.path.isfile("nmap/quickscan.nmap"):
         print(f"{bcolors.WARNING}[*] Old quickscan results have been found! Parsing data for full scan...")
@@ -247,7 +245,9 @@ def gobusterscan():
             quickscanopenports = f.read()
         f.close()
     elif not os.path.isfile("nmap/quickscan.nmap"):
-        quickscancmd = "nmap -Pn -p- -T4 --max-retries 1 --max-scan-delay 20 --open -oA nmap/quickscan %s" % target
+        # quickscancmd = "nmap -Pn -p- -T4 --max-retries 1 --max-scan-delay 20 --open -oA nmap/quickscan %s" % target
+        # quickscancmd = "nmap -Pn -p- -oA nmap/quickscan %s" % target # Imported from global var
+
         print(f"{bcolors.WARNING}\n[*] No old quick scan results found, running now to parse...{bcolors.ENDC}")
         os.system(quickscancmd)
         os.system(parsequickfile)
@@ -344,7 +344,7 @@ def gobusterscan():
 
 
 def fullscan(): # Scan all TCP ports, if any are found, run a thorough scan with vulners script as well as default scripts & gobuster.
-    
+    global quickscancmd
     texttoprint = f"\n{bcolors.BOLD}[*] Running scan type: Full{bcolors.ENDC}"
     catfullfile = "cat nmap/fullscan.nmap"
     parsequickfile = "cat nmap/quickscan.nmap | grep open | cut -d \" \" -f 1 | cut -d \"/\" -f 1 | tr \"\\n\" \",\" | cut -c3- | head -c-2 > nmap/parsedquickscan.txt" # Command to parse quickscan file.
@@ -355,10 +355,13 @@ def fullscan(): # Scan all TCP ports, if any are found, run a thorough scan with
         if f.mode == "r":
             quickscanopenports = f.read()
         f.close()
-        cmd = "nmap -Pn -p %s -sV --script vulners --script-args mincvss=7.0 --max-retries 3 --max-rate 500 --max-scan-delay 20 -T3 -v -oA nmap/fullscan %s" % (quickscanopenports, target) # john cena asks ARE YOU SURE ABOUT THAT?
+        # cmd = "nmap -Pn -p %s -sV --script vulners --script-args mincvss=7.0 --max-retries 3 --max-rate 500 --max-scan-delay 20 -T3 -v -oA nmap/fullscan %s" % (quickscanopenports, target) # john cena asks ARE YOU SURE ABOUT THAT?
+        cmd = "nmap -Pn -p %s -sV --script vuln -oA nmap/fullscan %s" %(quickscanopenports, target) # fullscancmd
 
     elif not os.path.isfile("nmap/quickscan.nmap"):
-        quickscancmd = "nmap -Pn -p- -T4 --max-retries 1 --max-scan-delay 20 --open -oA nmap/quickscan %s" % target
+        # quickscancmd = "nmap -Pn -p- -T4 --max-retries 1 --max-scan-delay 20 --open -oA nmap/quickscan %s" % target # Old command
+        # quickscancmd = "nmap -Pn -p- -oA nmap/quickscan %s" % target # Imported global var
+
         print(f"{bcolors.WARNING}\n[*] No old quick scan results found, running now to parse...{bcolors.ENDC}")
         os.system(quickscancmd)
         os.system(parsequickfile)
@@ -367,7 +370,11 @@ def fullscan(): # Scan all TCP ports, if any are found, run a thorough scan with
         if f.mode == "r":
             quickscanopenports = f.read()
         f.close()
-        cmd = "nmap -Pn -p %s -sV --script vulners --script-args mincvss=7.0 --max-retries 3 --max-rate 500 --max-scan-delay 20 -T3 -v -oA nmap/fullscan %s" % (quickscanopenports, target) # john cena asks ARE YOU SURE ABOUT THAT?
+
+        # This command is repeated twice in this function. Is this necessary?
+        # cmd = "nmap -Pn -p %s -sV --script vulners --script-args mincvss=7.0 --max-retries 3 --max-rate 500 --max-scan-delay 20 -T3 -v -oA nmap/fullscan %s" % (quickscanopenports, target) # john cena asks ARE YOU SURE ABOUT THAT?
+        cmd = "nmap -Pn -p %s -sV --script vuln -oA nmap/fullscan %s" % (quickscanopenports, target) # Maybe make this var global?
+
     else:
         print(f"{bcolors.FAIL}Error occured while checking if quickscan results were available.")
         pass
