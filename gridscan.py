@@ -1,22 +1,22 @@
 #!/usr/bin/python3
-# Written in Python 3.6.9
+# Written in Python 3
 # 
-# GRIDSCAN v 0.1
 # MADE BY v0idcat
 
 import sys, os, select, time
 
 # Define colors for better readability when printing output
 class bcolors: 
-    PURPLE = '\033[95m'     # Purple color
-    BLUE = '\033[94m'       # Blue
-    GREEN = '\033[92m'      # Green
-    WARNING = '\033[93m'    # Yellow
-    FAIL = '\033[91m'       # Red 
+    PURPLE = '\033[95m'     # Purple text
+    BLUE = '\033[94m'       # Blue text
+    GREEN = '\033[92m'      # Green text
+    WARNING = '\033[93m'    # Yellow text
+    FAIL = '\033[91m'       # Red text
     ENDC = '\033[0m'        # Return to default text format
     BOLD = '\033[1m'        # Bold Text
     UNDERLINE = '\033[4m'   # Underlines text
     TIMEOUT = '\033[43m'    # Yellow background
+    BLK = '\033[30m'        # Black text
 
 
 
@@ -27,7 +27,7 @@ if __name__ == '__main__':
         target = sys.argv[1]
         scan_type = sys.argv[2]
         scan_type = scan_type.lower()
-        print(f"{bcolors.WARNING}NOTE: Requires nmap with vulners script & gobuster{bcolors.ENDC}\n")
+        print(f"{bcolors.WARNING}NOTE: Requires nmap & gobuster{bcolors.ENDC}\n")
         print(f"{bcolors.PURPLE}---------------------------------------------------------" + bcolors.ENDC)
         print(f"{bcolors.PURPLE}-----------------------made by---------------------------" + bcolors.ENDC)
         print(f"{bcolors.PURPLE}-----------------------{bcolors.BLUE}v0id.cat{bcolors.ENDC}{bcolors.PURPLE}--------------------------" + bcolors.ENDC)
@@ -40,6 +40,7 @@ if __name__ == '__main__':
         print("Quick OR Q               - Quick scan for any open ports.")
         print("UDP OR U                 - Runs a UDP scan on the target.")
         print("Regular OR Reg OR R      - Runs regular scripts and fingerprints for service versions.")
+        print("Vulnscan OR Vuln OR V    - Runs vulnerability scan using quick scan results.")
         print("Full OR F                - Does a more thorough & aggressive TCP scan on target.")
         print("Gobuster OR G            - Runs gobuster on ports 80/8080/443 depending on what is found with a quickscan.")
         sys.exit(-1)
@@ -63,12 +64,13 @@ quickscan_results_available = False
 udpscan_results_available = False
 regularscan_results_available = False
 fullscan_results_available = False
+vulnscan_results_available = False
 quickscancmd = "nmap -Pn -p- -oA nmap/quickscan %s" % target
-udpscancmd = "nmap -Pn -sU -sC -sV --script vuln -oA nmap/udpscan %s" % target
+udpscancmd = "nmap -Pn -sU -sC -sV --script=vuln -oA nmap/udpscan %s" % target
 regscancmd = "nmap -Pn -sC -sV -oA nmap/regularscan %s" % target
 
 def filecheck(): # Check if nmap dir exists, otherwise create it.
-    global quickscan_results_available, udpscan_results_available, regularscan_results_available, fullscan_results_available # Import global vars
+    global quickscan_results_available, udpscan_results_available, regularscan_results_available, fullscan_results_available, vulnscan_results_available # Import global vars
     if os.path.isdir('./nmap'): 
         if os.path.isfile('./nmap/quickscan.nmap'):
             quickscan_results_available = True
@@ -84,6 +86,11 @@ def filecheck(): # Check if nmap dir exists, otherwise create it.
             regularscan_results_available = True
         else:
             regularscan_results_available = False
+
+        if os.path.isfile('./nmap/vulnscan.nmap'):
+            vulnscan_results_available = True
+        else:
+            vulnscan_results_available = False
 
         if os.path.isfile('./nmap/fullscan.nmap'):
             fullscan_results_available = True
@@ -102,7 +109,6 @@ def filecheck(): # Check if nmap dir exists, otherwise create it.
 
 
 # Defining scan types
-
 def quickscan(): # Quickly scan all ports and see which are open
     global quickscancmd
     # cmd = "nmap -Pn -p- -T4 --max-retries 1 --max-scan-delay 20 --open -oA nmap/quickscan %s" % target
@@ -110,7 +116,7 @@ def quickscan(): # Quickly scan all ports and see which are open
     while quickscan_results_available: # While loop to return to if loop incase user input is incorrect.
         try:
             print(f"{bcolors.WARNING}[*] Previous scan files have been found in nmap dir!{bcolors.ENDC}\n")
-            rerun_scan = tinput(f"{bcolors.BOLD}[*] Would you like to rerun the scan? y/N {bcolors.ENDC}", 30) # Setting input timeout
+            rerun_scan = tinput(f"{bcolors.BOLD}[*] Would you like to rerun the quick scan? y/N {bcolors.ENDC}", 30) # Setting input timeout
             
             rerun_scan = rerun_scan.lower()
 
@@ -130,7 +136,7 @@ def quickscan(): # Quickly scan all ports and see which are open
 
 
         except TimeoutOccurred: # If timed out, do the following...
-            print(f"\n{bcolors.TIMEOUT}[*] TIMED OUT: Printing old results, then rerunning scans just in case...{bcolors.ENDC}")
+            print(f"\n{bcolors.TIMEOUT}{bcolors.BLK}[*] TIMED OUT: Printing old results, then rerunning scans just in case...{bcolors.ENDC}")
             catfile = 'cat nmap/quickscan.nmap'
             print(f'{bcolors.BOLD}----------------------------{bcolors.WARNING}OLD RESULTS{bcolors.ENDC}{bcolors.BOLD}----------------------------{bcolors.ENDC}')
             os.system(catfile)
@@ -147,7 +153,6 @@ def quickscan(): # Quickly scan all ports and see which are open
 
 
 
-
 def udpscan(): # Scan UDP ports
     global udpscancmd
     # cmd = "nmap -Pn -sU -sC -sV --script vulners --script-args mincvss=7.0 --max-retries 1 --open -oA nmap/udpscan %s" % target
@@ -155,7 +160,7 @@ def udpscan(): # Scan UDP ports
     while udpscan_results_available:
         try:
             print(f"{bcolors.WARNING}[*] Previous scan files have been found in nmap dir!{bcolors.ENDC}\n")
-            rerun_scan = tinput(f"{bcolors.BOLD}[*] Would you like to rerun the scan? y/N {bcolors.ENDC}", 30)
+            rerun_scan = tinput(f"{bcolors.BOLD}[*] Would you like to rerun the UDP scan? y/N {bcolors.ENDC}", 30)
             rerun_scan = rerun_scan.lower()
 
             if rerun_scan == "y":
@@ -174,7 +179,7 @@ def udpscan(): # Scan UDP ports
 
 
         except TimeoutOccurred:
-            print(f"\n{bcolors.TIMEOUT}[*] TIMED OUT: Printing old results, then rerunning scans just in case...{bcolors.ENDC}")
+            print(f"\n{bcolors.TIMEOUT}{bcolors.BLK}[*] TIMED OUT: Printing old results, then rerunning scans just in case...{bcolors.ENDC}")
             catfile = 'cat nmap/udpscan.nmap'
             print(f'{bcolors.BOLD}----------------------------{bcolors.WARNING}OLD RESULTS{bcolors.ENDC}{bcolors.BOLD}----------------------------{bcolors.ENDC}')
             os.system(catfile)
@@ -191,6 +196,71 @@ def udpscan(): # Scan UDP ports
 
 
 
+def vulnscan():
+    global vulnscan_results_available
+    catfullfile = "cat nmap/vulnscan.nmap"
+    parsequickfile = "cat nmap/quickscan.nmap | grep 'open\\|filtered' | cut -d \" \" -f 1 | cut -d \"/\" -f 1 | tr \"\\n\" \",\" | head -c-1 > nmap/parsedquickscan.txt" # Command to parse quickscan file. 
+
+    if os.path.isfile("nmap/quickscan.nmap"):
+        print(f"{bcolors.WARNING}[*] Old quickscan results have been found! Parsing data for vuln scan...")
+        os.system(parsequickfile)
+        f = open("nmap/parsedquickscan.txt", "r")
+        if f.mode == "r":
+            quickscanopenports = f.read()
+        f.close()
+        cmd = "nmap --script vuln -Pn -p %s -oA nmap/vulnscan %s" %(quickscanopenports, target)
+
+    elif not os.path.isfile("nmap/quickscan.nmap"):
+        print(f"{bcolors.WARNING}\n[*] No old quick scan results found, running now to parse...{bcolors.ENDC}")
+        os.system(quickscancmd)
+        os.system(parsequickfile)
+        print(f"{bcolors.GREEN}\n[+] Scan completed & parsed, starting vuln scan now...{bcolors.ENDC}")
+        f = open("nmap/parsedquickscan.txt", "r")
+        if f.mode == "r":
+            quickscanopenports = f.read()
+        f.close()
+        # This command is repeated twice in this function. Is this necessary?
+        cmd = "nmap --script vuln -Pn -p %s -oA nmap/vulnscan %s" %(quickscanopenports, target)
+
+    else:
+        print(f"{bcolors.FAIL}Error occured while checking if quickscan results were available.")
+        pass
+
+
+    while vulnscan_results_available:
+        try:
+            print(f"{bcolors.WARNING}[*] Previous scan files have been found in nmap dir!{bcolors.ENDC}\n")
+            rerun_scan = tinput(f"{bcolors.BOLD}[*] Would you like to rerun the vuln scan? y/N {bcolors.ENDC}", 30)
+            rerun_scan = rerun_scan.lower()
+            if rerun_scan == "y":
+                print(f"\n{bcolors.BOLD}[*] Running scan type: Vuln{bcolors.ENDC}")
+                os.system(cmd) 
+                break
+
+            elif rerun_scan == "n":
+                print(f"{bcolors.WARNING}[*] Scan rerun denied by user. Printing old results instead.{bcolors.ENDC}")
+                os.system(catfullfile)
+                break
+
+            else:
+                print(f"{bcolors.FAIL}[-] Error! Please use either Y or N to signify your response!{bcolors.ENDC}")
+
+        except TimeoutOccurred:
+            print(f"\n{bcolors.TIMEOUT}{bcolors.BLK}[*] TIMED OUT: Printing old results, then rerunning scans just in case...{bcolors.ENDC}")
+            print(f'{bcolors.BOLD}----------------------------{bcolors.WARNING}OLD RESULTS{bcolors.ENDC}{bcolors.BOLD}----------------------------{bcolors.ENDC}')
+            os.system(catfullfile)
+            print(f'{bcolors.BOLD}---------------------------{bcolors.WARNING}END OF RESULTS{bcolors.ENDC}{bcolors.BOLD}--------------------------{bcolors.ENDC}')
+            print(f"\n{bcolors.BOLD}[*] Running scan type: Vuln{bcolors.ENDC}")
+            os.system(cmd) 
+            break
+
+
+    while not vulnscan_results_available:
+        print(f"\n{bcolors.BOLD}[*] Running scan type: Vuln{bcolors.ENDC}")
+        os.system(cmd) # Add command to run vuln scan here
+        break
+
+
 
 def regscan(): # Scan with all regular scripts and fingerprint for service versions
     global regscancmd
@@ -198,7 +268,7 @@ def regscan(): # Scan with all regular scripts and fingerprint for service versi
     while regularscan_results_available:
         try:
             print(f"{bcolors.WARNING}[*] Previous scan files have been found in nmap dir!{bcolors.ENDC}\n")
-            rerun_scan = tinput(f"{bcolors.BOLD}[*] Would you like to rerun the scan? y/N {bcolors.ENDC}", 30)
+            rerun_scan = tinput(f"{bcolors.BOLD}[*] Would you like to rerun the regular scan? y/N {bcolors.ENDC}", 30)
             rerun_scan = rerun_scan.lower()
 
             if rerun_scan == "y":
@@ -217,7 +287,7 @@ def regscan(): # Scan with all regular scripts and fingerprint for service versi
 
 
         except TimeoutOccurred:
-            print(f"\n{bcolors.TIMEOUT}[*] TIMED OUT: Printing old results, then rerunning scans just in case...{bcolors.ENDC}")
+            print(f"\n{bcolors.TIMEOUT}{bcolors.BLK}[*] TIMED OUT: Printing old results, then rerunning scans just in case...{bcolors.ENDC}")
             catfile = 'cat nmap/regularscan.nmap'
             print(f'{bcolors.BOLD}----------------------------{bcolors.WARNING}OLD RESULTS{bcolors.ENDC}{bcolors.BOLD}----------------------------{bcolors.ENDC}')
             os.system(catfile)
@@ -236,7 +306,7 @@ def regscan(): # Scan with all regular scripts and fingerprint for service versi
 
 def gobusterscan():
     global quickscancmd
-    parsequickfile = "cat nmap/quickscan.nmap | grep open | cut -d \" \" -f 1 | cut -d \"/\" -f 1 | tr \"\\n\" \",\" | cut -c3- | head -c-2 > nmap/parsedquickscan.txt" # Command to parse quickscan file.
+    parsequickfile = "cat nmap/quickscan.nmap | grep 'open\\|filtered' | cut -d \" \" -f 1 | cut -d \"/\" -f 1 | tr \"\\n\" \",\" | head -c-1 > nmap/parsedquickscan.txt" # Command to parse quickscan file.
     if os.path.isfile("nmap/quickscan.nmap"):
         print(f"{bcolors.WARNING}[*] Old quickscan results have been found! Parsing data for full scan...")
         os.system(parsequickfile)
@@ -276,7 +346,7 @@ def gobusterscan():
                 break
         except TimeoutOccurred:
             catgobusterresults = "cat gobuster80results"
-            print(f"\n{bcolors.TIMEOUT}[*] TIMED OUT: Printing old results, then rerunning scans just in case...{bcolors.ENDC}")
+            print(f"\n{bcolors.TIMEOUT}{bcolors.BLK}[*] TIMED OUT: Printing old results, then rerunning scans just in case...{bcolors.ENDC}")
             print(f'{bcolors.BOLD}----------------------------{bcolors.WARNING}OLD RESULTS{bcolors.ENDC}{bcolors.BOLD}----------------------------{bcolors.ENDC}')
             os.system(catgobusterresults)
             print(f'{bcolors.BOLD}---------------------------{bcolors.WARNING}END OF RESULTS{bcolors.ENDC}{bcolors.BOLD}--------------------------{bcolors.ENDC}')
@@ -303,7 +373,7 @@ def gobusterscan():
                 break
         except TimeoutOccurred:
             catgobusterresults = "cat gobuster8080results"
-            print(f"\n{bcolors.TIMEOUT}[*] TIMED OUT: Printing old results, then rerunning scans just in case...{bcolors.ENDC}")
+            print(f"\n{bcolors.TIMEOUT}{bcolors.BLK}[*] TIMED OUT: Printing old results, then rerunning scans just in case...{bcolors.ENDC}")
             print(f'{bcolors.BOLD}----------------------------{bcolors.WARNING}OLD RESULTS{bcolors.ENDC}{bcolors.BOLD}----------------------------{bcolors.ENDC}')
             os.system(catgobusterresults)
             print(f'{bcolors.BOLD}---------------------------{bcolors.WARNING}END OF RESULTS{bcolors.ENDC}{bcolors.BOLD}--------------------------{bcolors.ENDC}')
@@ -330,7 +400,7 @@ def gobusterscan():
                 break
         except TimeoutOccurred:
             catgobusterresults = "cat gobuster443results"
-            print(f"\n{bcolors.TIMEOUT}[*] TIMED OUT: Printing old results, then rerunning scans just in case...{bcolors.ENDC}")
+            print(f"\n{bcolors.TIMEOUT}{bcolors.BLK}[*] TIMED OUT: Printing old results, then rerunning scans just in case...{bcolors.ENDC}")
             print(f'{bcolors.BOLD}----------------------------{bcolors.WARNING}OLD RESULTS{bcolors.ENDC}{bcolors.BOLD}----------------------------{bcolors.ENDC}')
             os.system(catgobusterresults)
             print(f'{bcolors.BOLD}---------------------------{bcolors.WARNING}END OF RESULTS{bcolors.ENDC}{bcolors.BOLD}--------------------------{bcolors.ENDC}')
@@ -340,14 +410,11 @@ def gobusterscan():
 
 
 
-
-
-
 def fullscan(): # Scan all TCP ports, if any are found, run a thorough scan with vulners script as well as default scripts & gobuster.
     global quickscancmd
     texttoprint = f"\n{bcolors.BOLD}[*] Running scan type: Full{bcolors.ENDC}"
     catfullfile = "cat nmap/fullscan.nmap"
-    parsequickfile = "cat nmap/quickscan.nmap | grep open | cut -d \" \" -f 1 | cut -d \"/\" -f 1 | tr \"\\n\" \",\" | cut -c3- | head -c-2 > nmap/parsedquickscan.txt" # Command to parse quickscan file.
+    parsequickfile = "cat nmap/quickscan.nmap | grep 'open\\|filtered' | cut -d \" \" -f 1 | cut -d \"/\" -f 1 | tr \"\\n\" \",\" | head -c-1 > nmap/parsedquickscan.txt" # Command to parse quickscan file. 
     if os.path.isfile("nmap/quickscan.nmap"):
         print(f"{bcolors.WARNING}[*] Old quickscan results have been found! Parsing data for full scan...")
         os.system(parsequickfile)
@@ -355,12 +422,10 @@ def fullscan(): # Scan all TCP ports, if any are found, run a thorough scan with
         if f.mode == "r":
             quickscanopenports = f.read()
         f.close()
-        # cmd = "nmap -Pn -p %s -sV --script vulners --script-args mincvss=7.0 --max-retries 3 --max-rate 500 --max-scan-delay 20 -T3 -v -oA nmap/fullscan %s" % (quickscanopenports, target) # john cena asks ARE YOU SURE ABOUT THAT?
-        cmd = "nmap -Pn -p %s -sV --script vuln -oA nmap/fullscan %s" %(quickscanopenports, target) # fullscancmd
+        cmd = "nmap -Pn -p %s -sV -oA nmap/fullscan %s" %(quickscanopenports, target) # fullscancmd: -sV seems to trigger vulners script.
+        # sudo nmap --script "vuln" -p21,22,80 192.168.167.107 <-- This worked.
 
     elif not os.path.isfile("nmap/quickscan.nmap"):
-        # quickscancmd = "nmap -Pn -p- -T4 --max-retries 1 --max-scan-delay 20 --open -oA nmap/quickscan %s" % target # Old command
-        # quickscancmd = "nmap -Pn -p- -oA nmap/quickscan %s" % target # Imported global var
 
         print(f"{bcolors.WARNING}\n[*] No old quick scan results found, running now to parse...{bcolors.ENDC}")
         os.system(quickscancmd)
@@ -372,8 +437,7 @@ def fullscan(): # Scan all TCP ports, if any are found, run a thorough scan with
         f.close()
 
         # This command is repeated twice in this function. Is this necessary?
-        # cmd = "nmap -Pn -p %s -sV --script vulners --script-args mincvss=7.0 --max-retries 3 --max-rate 500 --max-scan-delay 20 -T3 -v -oA nmap/fullscan %s" % (quickscanopenports, target) # john cena asks ARE YOU SURE ABOUT THAT?
-        cmd = "nmap -Pn -p %s -sV --script vuln -oA nmap/fullscan %s" % (quickscanopenports, target) # Maybe make this var global?
+        cmd = "nmap -Pn -p %s -sV -oA nmap/fullscan %s" % (quickscanopenports, target) # Maybe make this var global?
 
     else:
         print(f"{bcolors.FAIL}Error occured while checking if quickscan results were available.")
@@ -381,11 +445,11 @@ def fullscan(): # Scan all TCP ports, if any are found, run a thorough scan with
     while fullscan_results_available:
         try:
             print(f"{bcolors.WARNING}[*] Previous scan files have been found in nmap dir!{bcolors.ENDC}\n")
-            rerun_scan = tinput(f"{bcolors.BOLD}[*] Would you like to rerun the scan? y/N {bcolors.ENDC}", 30)
+            rerun_scan = tinput(f"{bcolors.BOLD}[*] Would you like to rerun the full scan? y/N {bcolors.ENDC}", 30)
             rerun_scan = rerun_scan.lower()
             if rerun_scan == "y":
                 print(texttoprint)
-                os.system(cmd)
+                os.system(cmd) # Add command to run vuln scan here
                 break
 
             elif rerun_scan == "n":
@@ -398,17 +462,17 @@ def fullscan(): # Scan all TCP ports, if any are found, run a thorough scan with
 
 
         except TimeoutOccurred:
-            print(f"\n{bcolors.TIMEOUT}[*] TIMED OUT: Printing old results, then rerunning scans just in case...{bcolors.ENDC}")
+            print(f"\n{bcolors.TIMEOUT}{bcolors.BLK}[*] TIMED OUT: Printing old results, then rerunning scans just in case...{bcolors.ENDC}")
             print(f'{bcolors.BOLD}----------------------------{bcolors.WARNING}OLD RESULTS{bcolors.ENDC}{bcolors.BOLD}----------------------------{bcolors.ENDC}')
             os.system(catfullfile)
             print(f'{bcolors.BOLD}---------------------------{bcolors.WARNING}END OF RESULTS{bcolors.ENDC}{bcolors.BOLD}--------------------------{bcolors.ENDC}')
             print(texttoprint)
-            os.system(cmd)
+            os.system(cmd) # Add command to run vuln scan here
             break
 
     while not fullscan_results_available:
         print(texttoprint)
-        os.system(cmd)
+        os.system(cmd) # Add command to run vuln scan here
         break
 
     gobusterscan()
@@ -428,3 +492,5 @@ elif scan_type == "udp" or scan_type == 'u':
     udpscan()
 elif scan_type == "gobuster" or scan_type == "g":
     gobusterscan()
+elif scan_type == "vuln" or scan_type == "vulnscan" or scan_type == "v":
+    vulnscan()
